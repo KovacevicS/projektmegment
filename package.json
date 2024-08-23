@@ -1,0 +1,11 @@
+{
+  "name": "asana-project",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node backend/index.js",
+    "client": "cd my-app && npm start"
+  },
+  "devDependencies": {
+    "concurrently": "^7.0.0"
+  }
+}
