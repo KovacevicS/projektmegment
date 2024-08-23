@@ -1,0 +1,157 @@
+/* Reset default browser styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  line-height: 1.6;
+  background-color: #f4f4f4;
+  color: #333;
+}
+
+/* Container for centered content */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Basic layout styles */
+header {
+  background: #333;
+  color: #fff;
+  padding: 10px 0;
+}
+
+header nav ul {
+  list-style: none;
+  display: flex;
+  justify-content: space-around;
+}
+
+header nav ul li a {
+  color: #fff;
+  text-decoration: none;
+  padding: 5px 10px;
+}
+
+header nav ul li a:hover {
+  background: #555;
+}
+
+main {
+  padding: 20px;
+  background: #fff;
+  margin-top: 10px;
+}
+
+footer {
+  text-align: center;
+  padding: 20px 0;
+  background: #333;
+  color: #fff;
+  margin-top: 20px;
+}
+
+/* Form styles */
+form {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #fff;
+  border-radius: 5px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+form input,
+form button {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+
+form button {
+  background: #333;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+form button:hover {
+  background: #555;
+}
+
+/* Button styles */
+button {
+  display: inline-block;
+  padding: 10px 20px;
+  margin: 10px 0;
+  background: #333;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #555;
+}
+
+/* Table styles */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+
+table, th, td {
+  border: 1px solid #ddd;
+}
+
+th, td {
+  padding: 10px;
+  text-align: left;
+}
+
+th {
+  background: #333;
+  color: #fff;
+}
+
+/* Utility classes */
+.text-center {
+  text-align: center;
+}
+
+.mt-20 {
+  margin-top: 20px;
+}
+
+.mb-20 {
+  margin-bottom: 20px;
+}
+/** DodajProjekat.css */
+
+/* Stilizacija select polja */
+.select-container {
+  margin-bottom: 10px;
+}
+
+.select-container select {
+  width: 450%;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+/* Stil za multiple select */
+.select-container select[multiple] {
+  height: auto;
+}

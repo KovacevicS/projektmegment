@@ -1,0 +1,35 @@
+/* import React from 'react';
+import { Button } from '@mui/material';
+import { jsPDF } from "jspdf";
+import autoTable from 'jspdf-autotable';
+import * as FileSaver from 'file-saver';
+import * as XLSX from 'xlsx';
+
+const exportToPDF = (tasks) => {
+    const doc = new jsPDF();
+    autoTable(doc, {
+        head: [['Ime zadatka', 'Krajnji rok', 'Opis zadatka', 'Dodijeljeni korisnik', 'Status', 'Napomena']],
+        body: tasks.map(task => [task.ime_zadatka, task.krajnji_rok, task.opis_zadatka, task.dodijeljeni_korisnik, task.status, task.napomena])
+    });
+    doc.save('zadaci.pdf');
+};
+
+const exportToCSV = (tasks) => {
+    const csvData = tasks.map(task => ({
+        "Ime zadatka": task.ime_zadatka,
+        "Krajnji rok": task.krajnji_rok,
+        "Opis zadatka": task.opis_zadatka,
+        "Dodijeljeni korisnik": task.dodijeljeni_korisnik,
+        "Status": task.status,
+        "Napomena": task.napomena
+    }));
+    const ws = XLSX.utils.json_to_sheet(csvData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Zadaci');
+    XLSX.writeFile(wb, 'zadaci.xlsx');
+};
+
+// Usage in component
+<Button onClick={() => exportToPDF(filteredZadaci)}>Izvezi PDF</Button>
+<Button onClick={() => exportToCSV(filteredZadaci)}>Izvezi CSV</Button>
+ */
