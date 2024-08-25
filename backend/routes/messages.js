@@ -4,14 +4,26 @@ const db = require('../db'); // Pretpostavljamo da imate datoteku za konekciju s
 
 // Kreirajte poruku
 router.post('/send', (req, res) => {
-  const { sender_id, message, projekat_id } = req.body;
+  const { sender_id, message, projekat_id, receiver_id } = req.body;
 
-  if (!sender_id || !message || !projekat_id) {
-    return res.status(400).json({ error: 'All fields are required' });
+  if (!sender_id || !message) {
+    return res.status(400).json({ error: 'Sender and message content are required' });
   }
 
-  const query = 'INSERT INTO messages (sender_id, message, projekat_id) VALUES (?, ?, ?)';
-  db.query(query, [sender_id, message, projekat_id], (err, results) => {
+  let query;
+  let params;
+
+  if (projekat_id) {
+    query = 'INSERT INTO messages (sender_id, message, projekat_id, is_project_message) VALUES (?, ?, ?, TRUE)';
+    params = [sender_id, message, projekat_id];
+  } else if (receiver_id) {
+    query = 'INSERT INTO messages (sender_id, message, receiver_id, is_project_message) VALUES (?, ?, ?, FALSE)';
+    params = [sender_id, message, receiver_id];
+  } else {
+    return res.status(400).json({ error: 'Either projekat_id or receiver_id is required' });
+  }
+
+  db.query(query, params, (err, results) => {
     if (err) {
       console.error('Error inserting message:', err);
       return res.status(500).json({ error: 'Error inserting message' });
@@ -19,6 +31,7 @@ router.post('/send', (req, res) => {
     res.status(201).json({ message: 'Message sent successfully!' });
   });
 });
+
 
 // Ažurirajte poruku
 router.put('/api/messages/edit/:id', (req, res) => {
@@ -54,16 +67,18 @@ router.delete('/delete/:id', (req, res) => {
 });
 
 // Preuzmite poruke za određeni projekat
-router.get('/:projekatId', (req, res) => {
-  const projekatId = req.params.projekatId;
-  const query = 'SELECT * FROM messages WHERE projekat_id = ?';
-  db.query(query, [projekatId], (err, results) => {
+router.get('/private/:senderId/:receiverId', (req, res) => {
+  const { senderId, receiverId } = req.params;
+  const query = 'SELECT * FROM messages WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) AND is_project_message = FALSE';
+  
+  db.query(query, [senderId, receiverId, receiverId, senderId], (err, results) => {
     if (err) {
-      console.error('Error fetching messages:', err);
-      return res.status(500).json({ error: 'Error fetching messages' });
+      console.error('Error fetching private messages:', err);
+      return res.status(500).json({ error: 'Error fetching private messages' });
     }
     res.json(results);
   });
 });
+
 
 module.exports = router;

@@ -9,7 +9,7 @@ const teamsRouter = require('./routes/teams');
 const authRouter = require('./routes/auth');
 const korisniciRouter = require('./routes/korisnici'); // Dodato
 const messagesRouter = require('./routes/messages');
-
+const privateMessagesRouter = require('./routes/private_messages')
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -32,6 +32,8 @@ app.use('/api/teams', teamsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/korisnici', korisniciRouter); // Dodato
 app.use('/api/messages', messagesRouter);
+app.use('/api/private-messages', privateMessagesRouter);
+
 
 
 // Start server
