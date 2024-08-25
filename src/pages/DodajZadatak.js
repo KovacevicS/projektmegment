@@ -4,10 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { Button, FormControl, InputLabel, MenuItem, Select, TextField } from '@mui/material';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { useAuth } from "../services/auth"; // Pretpostavka da koristiš neki auth hook za korisničke podatke
+import { useAuth } from "../services/auth";
 
 const DodajZadatak = () => {
-    const { user } = useAuth(); // Korisnički podaci
+    const { user } = useAuth();
     const [naziv, setNaziv] = useState('');
     const [datum_zavrsetka, setDatumZavrsetka] = useState(null);
     const [opis, setOpis] = useState('');
@@ -15,20 +15,48 @@ const DodajZadatak = () => {
     const [projekti, setProjekti] = useState([]);
     const [projekat, setProjekat] = useState('');
     const [napomena, setNapomena] = useState('');
+    const [korisnici, setKorisnici] = useState([]);
+    const [korisnikId, setKorisnikId] = useState('');
+    const [vaznost, setVaznost] = useState('Srednja');
+    const [zadaci, setZadaci] = useState([]);
+    const [filteredProjekti, setFilteredProjekti] = useState([]);
     const navigate = useNavigate();
 
     useEffect(() => {
-        const fetchProjekti = async () => {
+        const fetchProjektiIKorisnici = async () => {
             try {
-                const response = await axios.get('http://localhost:5000/api/projekti');
-                setProjekti(response.data);
+                const [projektiResponse, korisniciResponse, zadaciResponse] = await Promise.all([
+                    axios.get('http://localhost:5000/api/projekti'),
+                    axios.get('http://localhost:5000/api/korisnici'),
+                    axios.get('http://localhost:5000/api/tasks')
+                ]);
+                setProjekti(projektiResponse.data);
+                setKorisnici(korisniciResponse.data);
+                setZadaci(zadaciResponse.data);
             } catch (error) {
-                console.error('Error fetching projects:', error);
+                console.error('Error fetching data:', error);
             }
         };
 
-        fetchProjekti();
-    }, []);
+        if (user && user.uloga === 'admin') {
+            fetchProjektiIKorisnici();
+        }
+    }, [user]);
+
+    useEffect(() => {
+        if (korisnikId) {
+            // Filtriraj projekte na osnovu izabranog korisnika
+            console.log("Izabrani korisnik ID:", korisnikId);
+            const filtered = projekti.filter(projekat => {
+                console.log("Projekat ID:", projekat.id, "Ljudi u projektu:", projekat.ljudi_u_projektu);
+                const ljudiUProjektu = JSON.parse(projekat.ljudi_u_projektu) || [];
+                return ljudiUProjektu.includes(korisnikId);
+            });
+            setFilteredProjekti(filtered);
+        } else {
+            setFilteredProjekti([]);
+        }
+    }, [korisnikId, projekti]);
 
     const handleDodajZadatak = async (e) => {
         e.preventDefault();
@@ -40,7 +68,8 @@ const DodajZadatak = () => {
                 datum_zavrsetka: datum_zavrsetka ? datum_zavrsetka.toISOString().split('T')[0] : '',
                 projekat_id: projekat,
                 napomena,
-                korisnik_id: user.id // Dodaj korisnik_id
+                korisnik_id: korisnikId,
+                vaznost
             };
 
             await axios.post('http://localhost:5000/api/tasks', noviZadatak);
@@ -49,6 +78,16 @@ const DodajZadatak = () => {
             console.error('Error adding task:', error);
         }
     };
+
+    if (user && user.uloga !== 'admin') {
+        return <div>Nemate ovlašćenje za dodavanje zadataka.</div>;
+    }
+
+    // Izračunaj broj zadataka po korisniku
+    const korisniciSaBrojemZadataka = korisnici.map(korisnik => {
+        const brojZadataka = zadaci.filter(zadatak => zadatak.korisnik_id === korisnik.id).length;
+        return { ...korisnik, brojZadataka };
+    });
 
     return (
         <div>
@@ -76,17 +115,44 @@ const DodajZadatak = () => {
                     margin="normal"
                 />
                 <FormControl fullWidth margin="normal">
+                    <InputLabel id="select-korisnik-label">Izaberite korisnika</InputLabel>
+                    <Select
+                        labelId="select-korisnik-label"
+                        value={korisnikId}
+                        onChange={(e) => setKorisnikId(e.target.value)}
+                    >
+                        {korisniciSaBrojemZadataka.map(korisnik => (
+                            <MenuItem key={korisnik.id} value={korisnik.id}>
+                                {korisnik.ime} {korisnik.prezime} (Uloga: {korisnik.uloga})(Zadaci: {korisnik.brojZadataka})
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+                <FormControl fullWidth margin="normal">
                     <InputLabel id="select-projekat-label">Projekat</InputLabel>
                     <Select
                         labelId="select-projekat-label"
                         value={projekat}
                         onChange={(e) => setProjekat(e.target.value)}
+                        disabled={!korisnikId}
                     >
-                        {projekti.map(projekat => (
+                        {filteredProjekti.map(projekat => (
                             <MenuItem key={projekat.id} value={projekat.id}>
                                 {projekat.ime_projekta}
                             </MenuItem>
                         ))}
+                    </Select>
+                </FormControl>
+                <FormControl fullWidth margin="normal">
+                    <InputLabel id="select-vaznost-label">Vaznost</InputLabel>
+                    <Select
+                        labelId="select-vaznost-label"
+                        value={vaznost}
+                        onChange={(e) => setVaznost(e.target.value)}
+                    >
+                        <MenuItem value="Niska">Niska</MenuItem>
+                        <MenuItem value="Srednja">Srednja</MenuItem>
+                        <MenuItem value="Visoka">Visoka</MenuItem>
                     </Select>
                 </FormControl>
                 <TextField

@@ -15,6 +15,7 @@ const Navbar = () => {
             <Link to="/korisnici">Korisnici</Link>
             <Link to="/projekti">Projekti</Link>
             <Link to="/zadaci">Zadaci</Link>
+            <Link to="/send-private-messages">Poruke</Link>
             <button onClick={logout}>Logout</button>
           </>
         ) : (

@@ -2,22 +2,23 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../services/auth';
 import axios from 'axios';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Typography,
   Grid,
+  Typography,
+  Paper,
 } from '@mui/material';
+import { Bar, Doughnut } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
 const DashboardPage = () => {
   const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
+  const [taskData, setTaskData] = useState({ labels: [], datasets: [] });
+  const [projectData, setProjectData] = useState({ labels: [], datasets: [] });
+  const [userWorkloadData, setUserWorkloadData] = useState({ labels: [], datasets: [] });
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -48,9 +49,77 @@ const DashboardPage = () => {
     fetchDashboardData();
   }, [user]);
 
-/*   const getTasksCountByStatus = (status) => {
-    return tasks.filter(task => task.status === status).length;
-  }; */
+  useEffect(() => {
+    const calculateTaskData = () => {
+      if (tasks.length === 0) return;
+
+      const statusCounts = tasks.reduce((acc, task) => {
+        acc[task.status] = (acc[task.status] || 0) + 1;
+        return acc;
+      }, {});
+
+      setTaskData({
+        labels: Object.keys(statusCounts),
+        datasets: [
+          {
+            label: 'Broj zadataka po statusu',
+            data: Object.values(statusCounts),
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1,
+          },
+        ],
+      });
+    };
+
+    const calculateProjectData = () => {
+      if (projects.length === 0) return;
+
+      const projectStatusCounts = projects.reduce((acc, project) => {
+        acc[project.status] = (acc[project.status] || 0) + 1;
+        return acc;
+      }, {});
+
+      setProjectData({
+        labels: Object.keys(projectStatusCounts),
+        datasets: [
+          {
+            label: 'Broj projekata po statusu',
+            data: Object.values(projectStatusCounts),
+            backgroundColor: 'rgba(153, 102, 255, 0.2)',
+            borderColor: 'rgba(153, 102, 255, 1)',
+            borderWidth: 1,
+          },
+        ],
+      });
+    };
+
+    const calculateUserWorkloadData = () => {
+      if (allUsers.length === 0 || tasks.length === 0) return;
+
+      const userWorkloads = allUsers.reduce((acc, user) => {
+        acc[user.ime + ' ' + user.prezime] = tasks.filter(task => task.korisnik_id === user.id).length;
+        return acc;
+      }, {});
+
+      setUserWorkloadData({
+        labels: Object.keys(userWorkloads),
+        datasets: [
+          {
+            label: 'Broj zadataka po korisniku',
+            data: Object.values(userWorkloads),
+            backgroundColor: 'rgba(255, 159, 64, 0.2)',
+            borderColor: 'rgba(255, 159, 64, 1)',
+            borderWidth: 1,
+          },
+        ],
+      });
+    };
+
+    calculateTaskData();
+    calculateProjectData();
+    calculateUserWorkloadData();
+  }, [tasks, projects, allUsers]);
 
   if (!user) {
     return <div>Loading...</div>;
@@ -67,86 +136,65 @@ const DashboardPage = () => {
           <Grid item xs={12}>
             <Typography variant="h6">Admin Panel</Typography>
 
-            {/* All Tasks */}
-            <Typography variant="h6" style={{ marginTop: '20px' }}>Svi Zadaci</Typography>
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>ID</TableCell>
-                    <TableCell>Ime zadatka</TableCell>
-                    <TableCell>Opis</TableCell>
-                    <TableCell>Korisnik ID</TableCell>
-                    <TableCell>Projekat ID</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Rok</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {tasks.map((task) => (
-                    <TableRow key={task.id}>
-                      <TableCell>{task.id}</TableCell>
-                      <TableCell>{task.naziv}</TableCell>
-                      <TableCell>{task.opis}</TableCell>
-                      <TableCell>{task.korisnik_id}</TableCell>
-                      <TableCell>{task.projekat_id}</TableCell>
-                      <TableCell>{task.status}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            {/* Tasks by Status */}
+            <Typography variant="h6" style={{ margin: '120px' }}>Broj zadataka po statusu</Typography>
+            <Paper style={{ padding: '20px' }}>
+              <Bar
+                data={taskData}
+                options={{
+                  responsive: true,
+                  plugins: {
+                    legend: {
+                      position: 'top',
+                    },
+                    title: {
+                      display: true,
+                      text: 'Zadaci po statusu',
+                    },
+                  },
+                }}
+              />
+            </Paper>
 
-            {/* All Projects */}
-            <Typography variant="h6" style={{ marginTop: '20px' }}>Svi Projekti</Typography>
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>ID</TableCell>
-                    <TableCell>Ime projekta</TableCell>
-                    <TableCell>Opis</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Rok</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {projects.map((project) => (
-                    <TableRow key={project.id}>
-                      <TableCell>{project.id}</TableCell>
-                      <TableCell>{project.ime_projekta}</TableCell>
-                      <TableCell>{project.opis}</TableCell>
-                      <TableCell>{project.status}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            {/* Projects by Status */}
+            <Typography variant="h6" style={{ margin: '120px' }}>Broj projekata po statusu</Typography>
+            <Paper style={{ padding: '20px' }}>
+              <Bar
+                data={projectData}
+                options={{
+                  responsive: true,
+                  plugins: {
+                    legend: {
+                      position: 'top',
+                    },
+                    title: {
+                      display: true,
+                      text: 'Projekti po statusu',
+                    },
+                  },
+                }}
+              />
+            </Paper>
 
-            {/* All Users */}
-            <Typography variant="h6" style={{ marginTop: '20px' }}>Svi Korisnici</Typography>
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>ID</TableCell>
-                    <TableCell>Ime</TableCell>
-                    <TableCell>Prezime</TableCell>
-                    <TableCell>Uloga</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {allUsers.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>{user.id}</TableCell>
-                      <TableCell>{user.ime}</TableCell>
-                      <TableCell>{user.prezime}</TableCell>
-                      <TableCell>{user.uloga}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            {/* User Workload */}
+            <Typography variant="h6" style={{ margin: '120px' }}>Opterećenje korisnika</Typography>
+            <Paper style={{ padding: '20px' }}>
+              <Doughnut
+                data={userWorkloadData}
+                options={{
+                  responsive: true,
+                  plugins: {
+                    legend: {
+                      position: 'top',
+                    },
+                    title: {
+                      display: true,
+                      text: 'Broj zadataka po korisniku',
+                    },
+                  },
+                }}
+              />
+            </Paper>
           </Grid>
         )}
       </Grid>

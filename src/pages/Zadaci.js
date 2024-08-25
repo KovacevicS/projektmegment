@@ -22,10 +22,20 @@ import SearchIcon from "@mui/icons-material/Search";
 import { useAuth } from "../services/auth";
 import { format } from "date-fns";
 
+const sortZadaci = (zadaci) => {
+  return zadaci.slice().sort((a, b) => {
+    // Sortiranje po važnosti
+    if (a.vaznost === b.vaznost) {
+      // Ako je važnost ista, sortira se po datumu
+      return new Date(a.datum_zavrsetka) - new Date(b.datum_zavrsetka);
+    }
+    return a.vaznost === 'Visoka' ? -1 : 1;
+  });
+};
+
 const Zadaci = () => {
   const { user } = useAuth();
   const [zadaci, setZadaci] = useState([]);
-  // const [filteredZadaci, setFilteredZadaci] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
@@ -34,13 +44,13 @@ const Zadaci = () => {
   useEffect(() => {
     const fetchZadaci = async () => {
       try {
-        console.log(`Fetching tasks for user ID: ${user.id}`); // Debug
-        const response = await axios.get(
-          `http://localhost:5000/api/tasks?korisnik_id=${user.id}`
-        );
-        console.log(response.data); // Debug
-        setZadaci(response.data);
-        // setFilteredZadaci(response.data);
+        let url = "http://localhost:5000/api/tasks";
+        if (user && user.uloga !== "admin") {
+          url += `?korisnik_id=${user.id}`;
+        }
+        const response = await axios.get(url);
+        const sortedZadaci = sortZadaci(response.data);
+        setZadaci(sortedZadaci);
       } catch (error) {
         console.error("Error fetching tasks:", error);
         setSnackbarMessage("Error fetching tasks");
@@ -49,27 +59,15 @@ const Zadaci = () => {
       }
     };
 
-    if (user && user.id) {
+    if (user) {
       fetchZadaci();
     }
   }, [user]);
-
-  /*  useEffect(() => {
-    setFilteredZadaci(
-      zadaci.filter((zadatak) => {
-        const imeZadatka = zadatak.ime_zadatka ? zadatak.ime_zadatka.toLowerCase() : '';
-        const opisZadatka = zadatak.opis_zadatka ? zadatak.opis_zadatka.toLowerCase() : '';
-        return imeZadatka.includes(searchTerm.toLowerCase()) || opisZadatka.includes(searchTerm.toLowerCase());
-      })
-    );
-  }, [searchTerm, zadaci]);
-   */
 
   const handleDelete = async (id) => {
     try {
       await axios.delete(`http://localhost:5000/api/tasks/${id}`);
       setZadaci(zadaci.filter((zadatak) => zadatak.id !== id));
-      // setFilteredZadaci(filteredZadaci.filter((zadatak) => zadatak.id !== id));
       setSnackbarMessage("Task deleted successfully");
       setSnackbarSeverity("success");
       setSnackbarOpen(true);
@@ -89,11 +87,6 @@ const Zadaci = () => {
           zadatak.id === id ? { ...zadatak, status } : zadatak
         )
       );
-      /* setFilteredZadaci(
-        filteredZadaci.map((zadatak) =>
-          zadatak.id === id ? { ...zadatak, status } : zadatak
-        )
-      ); */
       setSnackbarMessage("Task status updated");
       setSnackbarSeverity("success");
       setSnackbarOpen(true);
@@ -108,8 +101,7 @@ const Zadaci = () => {
   const handleSnackbarClose = () => {
     setSnackbarOpen(false);
   };
-  console.log(user);
-  console.log(zadaci);
+
   return (
     <div>
       <h2>Lista Zadataka</h2>
@@ -128,11 +120,14 @@ const Zadaci = () => {
         }}
         style={{ marginBottom: "20px" }}
       />
-      <Link to="/dodaj-zadatak">
-        <Button variant="contained" color="primary">
-          Dodaj Zadatak
-        </Button>
-      </Link>
+      {user && user.uloga === "admin" && (
+        <Link to="/dodaj-zadatak">
+          <Button variant="contained" color="primary">
+            Dodaj Zadatak
+          </Button>
+        </Link>
+      )}
+
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
@@ -142,6 +137,10 @@ const Zadaci = () => {
               <TableCell>Opis zadatka</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Napomena</TableCell>
+              <TableCell>Vaznost</TableCell>
+              {user && user.uloga === "admin" && (
+                <TableCell>Korisnik</TableCell>
+              )}
               <TableCell>Akcije</TableCell>
             </TableRow>
           </TableHead>
@@ -169,24 +168,26 @@ const Zadaci = () => {
                   </TextField>
                 </TableCell>
                 <TableCell>{zadatak.napomena}</TableCell>
+                <TableCell>{zadatak.vaznost}</TableCell>
+                {user && user.uloga === "admin" && (
+                  <TableCell>
+                    {zadatak.korisnik_ime} {zadatak.korisnik_prezime}
+                  </TableCell>
+                )}
                 <TableCell>
-                  {user && user.uloga === "admin" && (
-                    <>
-                      <Link to={`/edit-zadatak/${zadatak.id}`}>
-                        <Button variant="contained" startIcon={<EditIcon />}>
-                          Izmeni
-                        </Button>
-                      </Link>
-                      <Button
-                        variant="contained"
-                        color="secondary"
-                        startIcon={<DeleteIcon />}
-                        onClick={() => handleDelete(zadatak.id)}
-                      >
-                        Obriši
-                      </Button>
-                    </>
-                  )}
+                  <Link to={`/edit-zadatak/${zadatak.id}`}>
+                    <Button variant="contained" startIcon={<EditIcon />}>
+                      Izmeni
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="contained"
+                    color="secondary"
+                    startIcon={<DeleteIcon />}
+                    onClick={() => handleDelete(zadatak.id)}
+                  >
+                    Obriši
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}

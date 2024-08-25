@@ -10,7 +10,10 @@ import {
   ListItem,
   IconButton,
   Menu,
-  MenuItem
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel
 } from "@mui/material";
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useAuth } from "../services/auth";
@@ -26,11 +29,17 @@ const SendMessage = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [editingMessageId, setEditingMessageId] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(""); // Dodajemo selectedUser stanje
 
   useEffect(() => {
     const fetchMessages = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/messages/${projekatId}`);
+        let response;
+        if (projekatId) {
+          response = await axios.get(`http://localhost:5000/api/messages/${projekatId}`);
+        } else if (selectedUser) {
+          response = await axios.get(`http://localhost:5000/api/messages/private/${user.id}/${selectedUser}`);
+        }
         setMessages(response.data);
       } catch (error) {
         console.error("Error fetching messages:", error);
@@ -50,38 +59,48 @@ const SendMessage = () => {
 
     fetchMessages();
     fetchUsers();
-  }, [projekatId]);
+  }, [projekatId, selectedUser,user.id]);
 
   const handleSendMessage = async () => {
     if (message.trim()) {
       try {
         if (editingMessageId) {
-          // Update existing message
           await axios.put(`http://localhost:5000/api/messages/edit/${editingMessageId}`, {
             message: message,
           });
           setEditingMessageId(null);
         } else {
-          // Send new message
-          await axios.post("http://localhost:5000/api/messages/send", {
+          const data = {
             sender_id: user.id,
             message: message,
-            projekat_id: projekatId,
-          });
+            projekat_id: projekatId || null,
+            receiver_id: selectedUser || null
+          };
+          await axios.post("http://localhost:5000/api/messages/send", data);
         }
-        setMessage(""); // Clear message input
-        const response = await axios.get(`http://localhost:5000/api/messages/${projekatId}`);
+        setMessage("");
+        let response;
+        if (projekatId) {
+          response = await axios.get(`http://localhost:5000/api/messages/${projekatId}`);
+        } else if (selectedUser) {
+          response = await axios.get(`http://localhost:5000/api/messages/private/${user.id}/${selectedUser}`);
+        }
         setMessages(response.data);
       } catch (error) {
         console.error("Error sending message:", error);
       }
     }
-  };  
+  };
 
   const handleDeleteMessage = async (messageId) => {
     try {
       await axios.delete(`http://localhost:5000/api/messages/delete/${messageId}`);
-      const response = await axios.get(`http://localhost:5000/api/messages/${projekatId}`);
+      let response;
+      if (projekatId) {
+        response = await axios.get(`http://localhost:5000/api/messages/${projekatId}`);
+      } else if (selectedUser) {
+        response = await axios.get(`http://localhost:5000/api/messages/private/${user.id}/${selectedUser}`);
+      }
       setMessages(response.data);
     } catch (error) {
       console.error("Error deleting message:", error);
@@ -91,12 +110,6 @@ const SendMessage = () => {
   const getUserName = (userId) => {
     const user = users.find(user => user.id === userId);
     return user ? `${user.ime} ${user.prezime}` : 'Unknown User';
-  };
-
-  const handleInfoClick = (message) => {
-    // Logika za prikaz informacija o poruci (npr. prikaz detaljnog modalnog prozora)
-    console.log('Message info:', message);
-    handleMenuClose();
   };
 
   const handleMenuClick = (event, message) => {
@@ -112,8 +125,25 @@ const SendMessage = () => {
   return (
     <div className="message-container">
       <Typography variant="h4" gutterBottom>
-        Send Message for Project ID: {projekatId}
+        {projekatId ? `Messages for Project ID: ${projekatId}` : "Send a Private Message"}
       </Typography>
+      
+      {!projekatId && (
+        <FormControl fullWidth>
+          <InputLabel>Select User</InputLabel>
+          <Select
+            value={selectedUser}
+            onChange={(e) => setSelectedUser(e.target.value)}
+          >
+            {users.map((user) => (
+              <MenuItem key={user.id} value={user.id}>
+                {user.ime} {user.prezime}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      )}
+      
       <Box className="messages-list">
         {loading ? (
           <Typography>Loading...</Typography>
@@ -150,11 +180,10 @@ const SendMessage = () => {
                         >
                           <MenuItem onClick={() => {
                             setEditingMessageId(selectedMessage.id);
-                            setMessage(selectedMessage.message); // Set message input to editing content
+                            setMessage(selectedMessage.message);
                             handleMenuClose();
                           }}>Edit</MenuItem>
                           <MenuItem onClick={() => handleDeleteMessage(selectedMessage.id)}>Delete</MenuItem>
-                          <MenuItem onClick={() => handleInfoClick(selectedMessage)}>Info</MenuItem>
                         </Menu>
                       </div>
                     )}
@@ -165,6 +194,7 @@ const SendMessage = () => {
           </List>
         )}
       </Box>
+      
       <Box className="message-input-container">
         <TextField
           label="Message"
@@ -175,12 +205,14 @@ const SendMessage = () => {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           className="message-input"
+          disabled={!projekatId && !selectedUser} // Disable if no project or user selected
         />
         <Button
           variant="contained"
           color="primary"
           onClick={handleSendMessage}
           className="message-send-button"
+          disabled={!projekatId && !selectedUser} // Disable if no project or user selected
         >
           {editingMessageId ? "Update" : "Send"}
         </Button>
